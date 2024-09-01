@@ -36,7 +36,7 @@ func main() {
 	g.DELETE("/template/:id", handler.Delete)
 	g.PATCH("/template/:id", handler.Patch)
 
-	err := g.Run(":8000")
+	err := g.Run(":"+g.Config.Get("HTTP_PORT"))
 	if err != nil {
 		return
 	}
