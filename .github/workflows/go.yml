@@ -1,0 +1,118 @@
+name: workflow-pipeline
+
+on:
+  pull_request:
+    branches:
+      - master
+      - development
+  push:
+    branches:
+      - development
+      - master
+
+env:
+  PORT: 9010
+  USER_NAME: ${{ secrets.DOCKER_USERNAME }}
+  REPO_NAME: template-service
+
+jobs:
+  test-and-build:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+          cache-dependency-path: go.sum
+
+      - name: Make Directory
+        run: mkdir build
+
+      - name: Test cases check
+        run: |
+          go test ./... -v -coverprofile build/coverage.out  grep -v "mock_interface"  -coverpkg=./...\
+
+      - name: Coverage Report
+        run: go tool cover -func build/coverage.out
+
+      - name: Coverage Check
+        run: |
+          COVERAGE_THRESHOLD=0.0
+          ACTUAL_COVERAGE=$(go tool cover -func=build/coverage.out | grep "total" | awk '{print $3}' | tr -d "%")
+          if [ "$(echo "$ACTUAL_COVERAGE < $COVERAGE_THRESHOLD" | bc)" -eq 1 ]; then
+          echo "Coverage is less than $COVERAGE_THRESHOLD%"
+          exit 1
+          else
+          echo "Coverage is greater than or equal to $COVERAGE_THRESHOLD%"
+          fi
+
+      - name: Build
+        run: |
+          CGO_ENABLED=0 go build -o main .
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v2
+        with:
+          name: binary
+          path: main
+          retention-days: 10
+
+  dockerize:
+    name: Dockerize
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development'
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: binary
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create Docker Hub Repository
+        run: |
+          REPO_NAME=${{ env.REPO_NAME }}
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
+
+          REPO_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" -u $DOCKER_USERNAME:$DOCKER_PASSWORD https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/$REPO_NAME/)
+          
+          if [ "$REPO_EXISTS" -ne "200" ]; then
+            echo "Repository does not exist. Creating repository: $REPO_NAME"
+            curl -X POST https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/$REPO_NAME/ \
+              -u $DOCKER_USERNAME:$DOCKER_PASSWORD \
+              -H "Content-Type: application/json" \
+              -d '{"name": "'"$REPO_NAME"'", "is_private": false}'
+          else
+            echo "Repository already exists: $REPO_NAME"
+          fi
+
+      - id: tagging
+        name: tagging
+        run: |
+          chmod a+x main
+          export TAG=$(date '+%Y%m%d%H%M%S')
+          echo "export TAG=$(echo $TAG)"  >> variables
+          echo ::set-output name=action_tag::$TAG
+
+      - name: Build and Push Docker Image
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.USER_NAME }}/${{ env.REPO_NAME }}:latest
+            ${{ env.USER_NAME }}/${{ env.REPO_NAME }}:${{ steps.tagging.outputs.action_tag }}
