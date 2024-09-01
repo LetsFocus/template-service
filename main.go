@@ -36,7 +36,7 @@ func main() {
 	g.DELETE("/template/:id", handler.Delete)
 	g.PATCH("/template/:id", handler.Patch)
 
-	err := g.Run(":"+golf.Configs.Get("HTTP_PORT"))
+	err := g.Run(":"+golf.Config.Get("HTTP_PORT"))
 	if err != nil {
 		return
 	}
