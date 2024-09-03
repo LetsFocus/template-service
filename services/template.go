@@ -37,13 +37,15 @@ func (s *Service) Create(ctx *gin.Context, invoice *models.Template) (models.Tem
 	return resp, nil
 }
 
-func (s *Service) Get(ctx *gin.Context, tenantId uuid.UUID, f models.Filters) ([]models.Template, error) {
-	resp, err := s.Invoices.Get(ctx, tenantId, f)
+func (s *Service) Get(ctx *gin.Context, tenantId uuid.UUID, f models.Filters) ([]models.Template, models.Pagination, error) {
+	f.Offset = (f.PageNumber - 1) * f.PageSize
+	f.Limit = f.PageSize
+	resp, pagination, err := s.Invoices.Get(ctx, tenantId, f)
 	if err != nil {
-		return nil, err
+		return nil, pagination, err
 	}
 
-	return resp, nil
+	return resp, pagination, nil
 }
 
 func (s *Service) Patch(ctx *gin.Context, invoice *models.Template) (models.Template, error) {

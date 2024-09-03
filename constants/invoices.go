@@ -7,4 +7,7 @@ const (
 	Content     = "content"
 	TenantID    = "tenantId"
 	Service     = "service"
+	PageSize    = "pageSize"
+	PageNumber  = "page"
+	SearchKey   = "searchKey"
 )

@@ -43,12 +43,12 @@ func (h *Handler) Create(ctx *gin.Context) {
 
 	resp, err := h.Invoices.Create(ctx, &invoiceTemplate)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(parseError(err))
 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, responseHandler(resp))
 }
 
 func (h *Handler) Get(ctx *gin.Context) {
@@ -59,30 +59,44 @@ func (h *Handler) Get(ctx *gin.Context) {
 		return
 	}
 
-	service := ctx.Query("service")
+	service := strings.ToLower(ctx.Query("service"))
 	if strings.TrimSpace(service) == "" {
 		ctx.JSON(http.StatusBadRequest, errors.MissingParam([]string{"service"}))
 
 		return
 	}
 
-	universal, err := strconv.ParseBool(strings.TrimSpace(ctx.Query("universal")))
+	//universal, err := strconv.ParseBool(strings.TrimSpace(ctx.Query("universal")))
+	//if err != nil {
+	//	ctx.JSON(http.StatusBadRequest, errors.MissingParam([]string{"universal"}))
+	//
+	//	return
+	//}
+
+	pageSize, err := strconv.Atoi(ctx.Query(constants.PageSize))
+	if err != nil || pageSize <= 0 {
+		pageSize = 10
+	}
+
+	pageNumber, err := strconv.Atoi(ctx.Query(constants.PageNumber))
+	if err != nil || pageNumber <= 0 {
+		pageNumber = 1
+	}
+
+	searchKey := ctx.Query(constants.SearchKey)
+
+	p := models.Pagination{PageNumber: pageNumber, PageSize: pageSize}
+
+	f := models.Filters{Service: service, Pagination: p, SearchKey: searchKey}
+
+	resp, pagination, err := h.Invoices.Get(ctx, tenantID, f)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errors.MissingParam([]string{"universal"}))
+		ctx.JSON(parseError(err))
 
 		return
 	}
 
-	f := models.Filters{Service: service, Universal: universal}
-
-	resp, err := h.Invoices.Get(ctx, tenantID, f)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
-
-		return
-	}
-
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, getAllResponseHandler(resp, pagination))
 }
 
 func (h *Handler) GetByID(ctx *gin.Context) {
@@ -102,12 +116,12 @@ func (h *Handler) GetByID(ctx *gin.Context) {
 
 	resp, err := h.Invoices.GetByID(ctx, tenantID, ID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(parseError(err))
 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, responseHandler(resp))
 }
 
 func (h *Handler) Delete(ctx *gin.Context) {
@@ -127,12 +141,12 @@ func (h *Handler) Delete(ctx *gin.Context) {
 
 	resp, err := h.Invoices.Delete(ctx, tenantID, ID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(parseError(err))
 
 		return
 	}
 
-	ctx.JSON(http.StatusNoContent, resp)
+	ctx.JSON(http.StatusNoContent, responseHandler(resp))
 }
 
 func (h *Handler) Patch(ctx *gin.Context) {
@@ -164,10 +178,37 @@ func (h *Handler) Patch(ctx *gin.Context) {
 
 	resp, err := h.Invoices.Patch(ctx, &invoiceTemplate)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(parseError(err))
 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, responseHandler(resp))
+}
+
+func parseError(err error) (int, interface{}) {
+	if parsedErr, ok := err.(errors.Errors); ok {
+		return parsedErr.StatusCode, errorHandler(err)
+	}
+
+	return http.StatusInternalServerError, errorHandler(err)
+}
+
+func responseHandler(data interface{}) interface{} {
+	return map[string]interface{}{
+		"data": data,
+	}
+}
+
+func getAllResponseHandler(data interface{}, pagination models.Pagination) interface{} {
+	return map[string]interface{}{
+		"data":      data,
+		"pagnation": pagination,
+	}
+}
+
+func errorHandler(err interface{}) interface{} {
+	return map[string]interface{}{
+		"errors": err,
+	}
 }

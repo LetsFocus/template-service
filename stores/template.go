@@ -2,6 +2,7 @@ package stores
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/LetsFocus/goLF/errors"
 	"github.com/LetsFocus/template-service/models"
 	"github.com/gin-gonic/gin"
@@ -41,11 +42,42 @@ func (s *Store) Create(ctx *gin.Context, invoice *models.Template) (models.Templ
 	return *invoice, nil
 }
 
-func (s *Store) Get(ctx *gin.Context, tenantId uuid.UUID, f models.Filters) ([]models.Template, error) {
-	// TODO: Consider TenantID as well
-	rows, err := s.DB.QueryContext(ctx, GETQUERY, f.Service)
+func (s *Store) Get(ctx *gin.Context, tenantId uuid.UUID, f models.Filters) ([]models.Template, models.Pagination, error) {
+
+	var args []interface{}
+	var conditions []string
+	var query string
+	args = append(args, tenantId)
+
+	if f.Service != "" {
+		conditions = append(conditions, "service = $2")
+		args = append(args, f.Service)
+	}
+
+	if f.SearchKey != "" {
+		conditions = append(conditions, "name ILIKE $3")
+		args = append(args, "%"+f.SearchKey+"%")
+	}
+
+	// Add conditions to the query if any
+	if len(conditions) > 0 {
+		query = GETQUERY + strings.Join(conditions, " AND ")
+	}
+
+	// Add LIMIT and OFFSET
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, f.Limit, f.Offset)
+
+	var count int
+	err := s.DB.QueryRowContext(ctx, COUNTQUERY, tenantId).Scan(&count)
 	if err != nil {
-		return nil, errors.Errors{StatusCode: http.StatusInternalServerError, Reason: err.Error(), Code: "DB Error"}
+		return nil, f.Pagination, errors.Errors{StatusCode: http.StatusInternalServerError, Reason: err.Error(), Code: "DB Error"}
+	}
+
+	f.Count = count
+	rows, err := s.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, f.Pagination, errors.Errors{StatusCode: http.StatusInternalServerError, Reason: err.Error(), Code: "DB Error"}
 	}
 
 	defer rows.Close()
@@ -57,13 +89,13 @@ func (s *Store) Get(ctx *gin.Context, tenantId uuid.UUID, f models.Filters) ([]m
 		err = rows.Scan(&template.TenantID, &template.ID, &template.Name, &template.Description, &template.Content,
 			&template.Service, &template.Universal, &template.CreatedAt, &template.UpdatedAt)
 		if err != nil {
-			return nil, errors.InternalServerError(err)
+			return nil, f.Pagination, errors.InternalServerError(err)
 		}
 
 		templates = append(templates, template)
 	}
 
-	return templates, nil
+	return templates, f.Pagination, nil
 }
 
 func (s *Store) Patch(ctx *gin.Context, invoice *models.Template) (models.Template, error) {

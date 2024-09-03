@@ -5,11 +5,12 @@ import (
 	"github.com/LetsFocus/template-service/constants"
 	"github.com/google/uuid"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type Template struct {
-	TenantID    uuid.UUID `json:"tenant_id"`
+	TenantID    uuid.UUID `json:"tenantId"`
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -23,6 +24,16 @@ type Template struct {
 type Filters struct {
 	Universal bool
 	Service   string
+	Limit     int
+	Offset    int
+	Pagination
+	SearchKey string
+}
+
+type Pagination struct {
+	PageSize   int `json:"pageSize"`
+	PageNumber int `json:"pageNumber"`
+	Count      int `json:"count"`
 }
 
 func (t *Template) Validate() error {
@@ -41,6 +52,7 @@ func (t *Template) Validate() error {
 	if t.Service == "" {
 		return errors.InvalidParam([]string{"service"})
 	}
+	t.Service = strings.ToLower(t.Service)
 
 	return nil
 }
