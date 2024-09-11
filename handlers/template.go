@@ -27,14 +27,14 @@ func (h *Handler) Create(ctx *gin.Context) {
 
 	tenantID, err := models.ValidateUUID(ctx.GetHeader(constants.TenantID), constants.TenantID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
 
 	err = ctx.BindJSON(&invoiceTemplate)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
@@ -54,14 +54,14 @@ func (h *Handler) Create(ctx *gin.Context) {
 func (h *Handler) Get(ctx *gin.Context) {
 	tenantID, err := models.ValidateUUID(ctx.GetHeader(constants.TenantID), constants.TenantID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
 
 	service := strings.ToLower(ctx.Query("service"))
 	if strings.TrimSpace(service) == "" {
-		ctx.JSON(http.StatusBadRequest, errors.MissingParam([]string{"service"}))
+		ctx.JSON(http.StatusBadRequest, errorHandler(errors.MissingParam([]string{"service"})))
 
 		return
 	}
@@ -102,14 +102,14 @@ func (h *Handler) Get(ctx *gin.Context) {
 func (h *Handler) GetByID(ctx *gin.Context) {
 	tenantID, err := models.ValidateUUID(ctx.GetHeader(constants.TenantID), constants.TenantID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
 
 	ID, err := models.ValidateUUID(ctx.Param(constants.ID), constants.ID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
@@ -127,14 +127,14 @@ func (h *Handler) GetByID(ctx *gin.Context) {
 func (h *Handler) Delete(ctx *gin.Context) {
 	tenantID, err := models.ValidateUUID(ctx.GetHeader(constants.TenantID), constants.TenantID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
 
 	ID, err := models.ValidateUUID(ctx.Param(constants.ID), constants.ID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
@@ -154,21 +154,21 @@ func (h *Handler) Patch(ctx *gin.Context) {
 
 	tenantID, err := models.ValidateUUID(ctx.GetHeader(constants.TenantID), constants.TenantID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
 
 	ID, err := models.ValidateUUID(ctx.Param(constants.ID), constants.ID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
 
 	err = ctx.BindJSON(&invoiceTemplate)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, errorHandler(err))
 
 		return
 	}
