@@ -203,7 +203,7 @@ func responseHandler(data interface{}) interface{} {
 func getAllResponseHandler(data interface{}, pagination models.Pagination) interface{} {
 	return map[string]interface{}{
 		"data":      data,
-		"pagnation": pagination,
+		"pagination": pagination,
 	}
 }
 
