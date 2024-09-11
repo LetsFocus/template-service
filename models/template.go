@@ -17,8 +17,8 @@ type Template struct {
 	Content     string    `json:"content"`
 	Service     string    `json:"service"`
 	Universal   bool      `json:"universal"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type Filters struct {
