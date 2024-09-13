@@ -5,5 +5,5 @@ const (
 	GETBYIDQUERY = "SELECT tenant_id, id, name, description, content, service, universal, created_at, updated_at FROM templates WHERE id = $1 AND tenant_id = $2"
 	DELETEQUERY  = "DELETE FROM templates where id=$1 AND tenant_id = $2"
 	GETQUERY     = "SELECT tenant_id, id, name, description, content, service, universal, created_at, updated_at FROM templates WHERE tenant_id = $1 AND "
-	COUNTQUERY   = "SELECT count(*) FROM templates WHERE tenant_id = $1"
+	COUNTQUERY   = "SELECT count(*) FROM templates WHERE tenant_id = $1 AND service=$2"
 )
