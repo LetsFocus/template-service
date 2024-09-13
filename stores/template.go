@@ -69,7 +69,7 @@ func (s *Store) Get(ctx *gin.Context, tenantId uuid.UUID, f models.Filters) ([]m
 	args = append(args, f.Limit, f.Offset)
 
 	var count int
-	err := s.DB.QueryRowContext(ctx, COUNTQUERY, tenantId).Scan(&count)
+	err := s.DB.QueryRowContext(ctx, COUNTQUERY, tenantId,f.Service).Scan(&count)
 	if err != nil {
 		return nil, f.Pagination, errors.Errors{StatusCode: http.StatusInternalServerError, Reason: err.Error(), Code: "DB Error"}
 	}
